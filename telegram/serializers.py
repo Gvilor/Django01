@@ -1,16 +1,35 @@
 from rest_framework import serializers
 
-from telegram.models import Group,Telegram
+from telegram.models import Group, Channel, Description, ChannelType, Subscriber
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = "__all__"
 
-class TelegramSerializer(serializers.ModelSerializer):
+class ChannelSerializer(serializers.ModelSerializer):
     group = GroupSerializer(read_only=True)
 
     class Meta:
-        model = Telegram
-        fields = ['id', 'name', 'group', 'description']
+        model = Channel
+        fields = ['id', 'name', 'group', 'channel_type']
+
+class ChannelTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChannelType
+        fields = "__all__"
+
+class DescriptionSerializer(serializers.ModelSerializer):
+    channel = ChannelSerializer(read_only=True)
+    
+    class Meta:
+        model = Description
+        fields = "__all__"
+
+class SubscriberSerializer(serializers.ModelSerializer):
+    channel = ChannelSerializer(read_only=True,)  
+    
+    class Meta:
+        model = Subscriber
+        fields = "__all__"
 

@@ -21,13 +21,18 @@ from telegram import views
 
 from rest_framework.routers import DefaultRouter
 
-from telegram.api import TelegramViewset
+from telegram.api import ChannelViewset, GroupViewset, ChannelTypeViewset, DescriptionViewset, SubscriberViewset
 
 from django.urls import path, include  # Добавьте include сюда
 
 
 router = DefaultRouter()
-router.register("telegrams", TelegramViewset, basename="telegram")
+router.register("channels", ChannelViewset, basename="telegram")
+router.register("channels", ChannelViewset, basename="channel")
+router.register("groups", GroupViewset, basename="group")
+router.register("channel-types", ChannelTypeViewset, basename="channeltype")
+router.register("descriptions", DescriptionViewset, basename="description")
+router.register("subscribers", SubscriberViewset, basename="subscriber")
 
 urlpatterns = [
     path('', views.ShowTelegramView.as_view()),
