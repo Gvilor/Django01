@@ -3,7 +3,7 @@ from telegram.models import Group, Channel, Description, ChannelType, Subscriber
 
 @admin.register(Channel)
 class ChannelAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'description' ,'group', 'channel_type', 'subscribes']
+    list_display = ['id', 'name', 'description' ,'group', 'channel_type', 'subscribers_count']
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
