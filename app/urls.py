@@ -27,7 +27,6 @@ from django.urls import path, include  # Добавьте include сюда
 
 
 router = DefaultRouter()
-router.register("channels", ChannelViewset, basename="telegram")
 router.register("channels", ChannelViewset, basename="channel")
 router.register("groups", GroupViewset, basename="group")
 router.register("channel-types", ChannelTypeViewset, basename="channeltype")

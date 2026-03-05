@@ -8,8 +8,11 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class ChannelSerializer(serializers.ModelSerializer):
-    group = GroupSerializer(read_only=True)
-
+    group = serializers.PrimaryKeyRelatedField(
+        queryset=Group.objects.all(),
+        allow_null=True,
+        required=False
+    )
     class Meta:
         model = Channel
         fields = ['id', 'name', 'group', 'channel_type']

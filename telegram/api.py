@@ -4,7 +4,7 @@ from rest_framework import mixins, viewsets
 from telegram.models import Channel, Group, Description, ChannelType, Subscriber
 from telegram.serializers import ChannelSerializer, GroupSerializer, DescriptionSerializer, ChannelTypeSerializer, SubscriberSerializer
 
-class ChannelViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+class ChannelViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
 
