@@ -1,66 +1,134 @@
 <script setup>
-import { computed, ref, onBeforeMount } from 'vue';
-import axios from 'axios';
+import { computed, ref, onBeforeMount } from 'vue'
+import axios from 'axios'
 
-const groups = ref([]);
-const channels = ref([]);
-const selectedGroupId = ref(null);
-const groupToAdd = ref({});
-const groupToEdit = ref({});
-const loading = ref(false);
+const groups = ref([])
+const channels = ref([])
+const selectedGroupId = ref(null)
+const groupToAdd = ref({})
+const groupToEdit = ref({})
+const loading = ref(false)
+
+const groupsPictureRef = ref()
+const groupAddImageUrl = ref(null)
+
+const groupEditPictureRef = ref()
+const groupEditImageUrl = ref(null)
+
+const selectedImage = ref(null)
 
 const filteredChannels = computed(() => {
   if (!selectedGroupId.value) {
-    return channels.value;
+    return channels.value
   }
 
-  return channels.value.filter(x => x.group === selectedGroupId.value);
-});
+  return channels.value.filter(x => x.group === selectedGroupId.value)
+})
+
+function openImage(url) {
+  selectedImage.value = url
+}
+
+function closeImage() {
+  selectedImage.value = null
+}
 
 async function fetchGroups() {
-  const r = await axios.get("/api/groups/");
-  groups.value = r.data;
+  const r = await axios.get('/api/groups/')
+  groups.value = r.data
 }
 
 async function fetchChannels() {
-  const r = await axios.get("/api/channels/");
-  channels.value = r.data;
+  const r = await axios.get('/api/channels/')
+  channels.value = r.data
 }
 
 async function onGroupAdd() {
-  await axios.post("/api/groups/", {
-    ...groupToAdd.value,
-  });
-  groupToAdd.value = {};
-  await fetchGroups();
+  const formData = new FormData()
+
+  if (groupsPictureRef.value?.files?.[0]) {
+    formData.append('picture', groupsPictureRef.value.files[0])
+  }
+
+  formData.set('name', groupToAdd.value.name || '')
+
+  await axios.post('/api/groups/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+
+  groupToAdd.value = {}
+  groupAddImageUrl.value = null
+
+  if (groupsPictureRef.value) {
+    groupsPictureRef.value.value = null
+  }
+
+  await fetchGroups()
 }
 
 async function onGroupEditClick(group) {
-  groupToEdit.value = { ...group };
+  groupToEdit.value = { ...group }
+  groupEditImageUrl.value = group.picture || null
+
+  if (groupEditPictureRef.value) {
+    groupEditPictureRef.value.value = null
+  }
 }
 
 async function onUpdateGroup() {
-  await axios.put(`/api/groups/${groupToEdit.value.id}/`, {
-    ...groupToEdit.value,
-  });
-  await fetchGroups();
+  const formData = new FormData()
+
+  if (groupEditPictureRef.value?.files?.[0]) {
+    formData.append('picture', groupEditPictureRef.value.files[0])
+  }
+
+  formData.set('name', groupToEdit.value.name || '')
+
+  await axios.put(`/api/groups/${groupToEdit.value.id}/`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+
+  groupToEdit.value = {}
+  groupEditImageUrl.value = null
+
+  if (groupEditPictureRef.value) {
+    groupEditPictureRef.value.value = null
+  }
+
+  await fetchGroups()
 }
 
 async function onRemoveClick(group) {
-  await axios.delete(`/api/groups/${group.id}/`);
-  await fetchGroups();
+  await axios.delete(`/api/groups/${group.id}/`)
+  await fetchGroups()
 
   if (selectedGroupId.value === group.id) {
-    selectedGroupId.value = null;
+    selectedGroupId.value = null
+  }
+}
+
+function groupsAddPictureChange() {
+  if (groupsPictureRef.value?.files?.[0]) {
+    groupAddImageUrl.value = URL.createObjectURL(groupsPictureRef.value.files[0])
+  }
+}
+
+function groupsEditPictureChange() {
+  if (groupEditPictureRef.value?.files?.[0]) {
+    groupEditImageUrl.value = URL.createObjectURL(groupEditPictureRef.value.files[0])
   }
 }
 
 onBeforeMount(async () => {
-  loading.value = true;
-  await fetchGroups();
-  await fetchChannels();
-  loading.value = false;
-});
+  loading.value = true
+  await fetchGroups()
+  await fetchChannels()
+  loading.value = false
+})
 </script>
 
 <template>
@@ -71,6 +139,7 @@ onBeforeMount(async () => {
           <h1 class="modal-title fs-5" id="addGroupModalLabel">Добавление группы</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
+
         <div class="modal-body">
           <form @submit.prevent="onGroupAdd">
             <div class="form-floating mb-3">
@@ -83,6 +152,23 @@ onBeforeMount(async () => {
                 required
               >
               <label for="groupName">Название группы</label>
+            </div>
+
+            <div class="col-auto mb-3">
+              <input
+                class="form-control"
+                type="file"
+                ref="groupsPictureRef"
+                @change="groupsAddPictureChange"
+              >
+            </div>
+
+            <div class="col-auto mb-3" v-if="groupAddImageUrl">
+              <img
+                :src="groupAddImageUrl"
+                style="max-height: 60px; cursor: pointer;"
+                @click="openImage(groupAddImageUrl)"
+              >
             </div>
 
             <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
@@ -101,6 +187,7 @@ onBeforeMount(async () => {
           <h1 class="modal-title fs-5" id="editGroupModalLabel">Редактирование группы</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
+
         <div class="modal-body">
           <form @submit.prevent="onUpdateGroup">
             <div class="form-floating mb-3">
@@ -113,6 +200,23 @@ onBeforeMount(async () => {
                 required
               >
               <label for="editGroupName">Название группы</label>
+            </div>
+
+            <div class="col-12 mb-3">
+              <input
+                class="form-control"
+                type="file"
+                ref="groupEditPictureRef"
+                @change="groupsEditPictureChange"
+              >
+            </div>
+
+            <div class="col-12 mb-3" v-if="groupEditImageUrl">
+              <img
+                :src="groupEditImageUrl"
+                style="max-height: 60px; cursor: pointer;"
+                @click="openImage(groupEditImageUrl)"
+              >
             </div>
 
             <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
@@ -157,6 +261,14 @@ onBeforeMount(async () => {
     <div v-for="item in groups" :key="item.id" class="groups-item">
       <b>{{ item.name }}</b>
 
+      <div v-show="item.picture">
+        <img
+          :src="item.picture"
+          style="max-height: 60px; cursor: pointer;"
+          @click="openImage(item.picture)"
+        >
+      </div>
+
       <button
         type="button"
         class="btn btn-success"
@@ -178,12 +290,16 @@ onBeforeMount(async () => {
       <b>{{ item.name }}</b>
     </div>
   </div>
+
+  <div v-if="selectedImage" class="image-modal" @click="closeImage">
+    <img :src="selectedImage" class="image-modal-content">
+  </div>
 </template>
 
 <style scoped>
 .groups-item {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 16px;
   padding: 0.5rem;
@@ -201,5 +317,23 @@ onBeforeMount(async () => {
   margin: 0.5rem 0;
   border: 1px solid silver;
   border-radius: 8px;
+}
+
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.image-modal-content {
+  max-width: 90%;
+  max-height: 90%;
 }
 </style>

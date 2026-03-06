@@ -1,14 +1,22 @@
 <script setup>
-import { computed, ref, onBeforeMount } from 'vue';
-import axios from 'axios';
-import _ from 'lodash';
+import { computed, ref, onBeforeMount } from 'vue'
+import axios from 'axios'
+import _ from 'lodash'
 
-const channels = ref([]);
-const groups = ref([]);
-const channelTypes = ref([]);
-const channelsToAdd = ref({});
-const channelsToEdit = ref({});
-const loading = ref(false);
+const channels = ref([])
+const groups = ref([])
+const channelTypes = ref([])
+const channelsToAdd = ref({})
+const channelsToEdit = ref({})
+const loading = ref(false)
+
+const channelsPictureRef = ref()
+const channelAddImageUrl = ref(null)
+
+const channelEditPictureRef = ref()
+const channelEditImageUrl = ref(null)
+
+const selectedImage = ref(null)
 
 const groupsById = computed(() => {
   return _.keyBy(groups.value, x => x.id)
@@ -18,51 +26,119 @@ const channelTypesById = computed(() => {
   return _.keyBy(channelTypes.value, x => x.id)
 })
 
+function openImage(url) {
+  selectedImage.value = url
+}
+
+function closeImage() {
+  selectedImage.value = null
+}
+
 async function fetchGroups() {
-  const r = await axios.get("/api/groups/")
-  groups.value = r.data;
+  const r = await axios.get('/api/groups/')
+  groups.value = r.data
 }
 
 async function fetchChannelTypes() {
-  const r = await axios.get("/api/channel-types/")
-  channelTypes.value = r.data;
+  const r = await axios.get('/api/channel-types/')
+  channelTypes.value = r.data
 }
 
 async function fetchChannels() {
-  const r = await axios.get("/api/channels/")
-  channels.value = r.data;
+  const r = await axios.get('/api/channels/')
+  channels.value = r.data
 }
 
 async function onChannelsAdd() {
-  await axios.post("/api/channels/", {
-    ...channelsToAdd.value,
-  });
-  channelsToAdd.value = {};
-  await fetchChannels();
+  const formData = new FormData()
+
+  if (channelsPictureRef.value?.files?.[0]) {
+    formData.append('picture', channelsPictureRef.value.files[0])
+  }
+
+  formData.set('name', channelsToAdd.value.name || '')
+  formData.set('description', channelsToAdd.value.description || '')
+  formData.set('group', channelsToAdd.value.group || '')
+  formData.set('channel_type', channelsToAdd.value.channel_type || '')
+  formData.set('subscribers_count', channelsToAdd.value.subscribers_count || 0)
+
+  await axios.post('/api/channels/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+
+  channelsToAdd.value = {}
+  channelAddImageUrl.value = null
+
+  if (channelsPictureRef.value) {
+    channelsPictureRef.value.value = null
+  }
+
+  await fetchChannels()
 }
 
 async function onRemoveClick(channel) {
   await axios.delete(`/api/channels/${channel.id}/`)
-  await fetchChannels();
+  await fetchChannels()
 }
 
 async function onChannelEditClick(channel) {
-  channelsToEdit.value = { ...channel };
+  channelsToEdit.value = { ...channel }
+  channelEditImageUrl.value = channel.picture || null
+
+  if (channelEditPictureRef.value) {
+    channelEditPictureRef.value.value = null
+  }
 }
 
 async function onUpdateChannel() {
-  await axios.put(`/api/channels/${channelsToEdit.value.id}/`, {
-    ...channelsToEdit.value
+  const formData = new FormData()
+
+  if (channelEditPictureRef.value?.files?.[0]) {
+    formData.append('picture', channelEditPictureRef.value.files[0])
+  }
+
+  formData.set('name', channelsToEdit.value.name || '')
+  formData.set('description', channelsToEdit.value.description || '')
+  formData.set('group', channelsToEdit.value.group || '')
+  formData.set('channel_type', channelsToEdit.value.channel_type || '')
+  formData.set('subscribers_count', channelsToEdit.value.subscribers_count || 0)
+
+  await axios.put(`/api/channels/${channelsToEdit.value.id}/`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
   })
-  await fetchChannels();
+
+  channelsToEdit.value = {}
+  channelEditImageUrl.value = null
+
+  if (channelEditPictureRef.value) {
+    channelEditPictureRef.value.value = null
+  }
+
+  await fetchChannels()
 }
 
-onBeforeMount(async ()  => {
-  loading.value = true;
-  await fetchChannels();
-  await fetchGroups();
-  await fetchChannelTypes();
-  loading.value = false;
+function channelsAddPictureChange() {
+  if (channelsPictureRef.value?.files?.[0]) {
+    channelAddImageUrl.value = URL.createObjectURL(channelsPictureRef.value.files[0])
+  }
+}
+
+function channelsEditPictureChange() {
+  if (channelEditPictureRef.value?.files?.[0]) {
+    channelEditImageUrl.value = URL.createObjectURL(channelEditPictureRef.value.files[0])
+  }
+}
+
+onBeforeMount(async () => {
+  loading.value = true
+  await fetchChannels()
+  await fetchGroups()
+  await fetchChannelTypes()
+  loading.value = false
 })
 </script>
 
@@ -79,7 +155,12 @@ onBeforeMount(async ()  => {
           <div class="row">
             <div class="col-12 col-md-6">
               <div class="form-floating mb-3">
-                <input type="text" class="form-control" v-model="channelsToEdit.name" id="editChannelName" placeholder="Название канала">
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model="channelsToEdit.name"
+                  id="editChannelName"
+                  placeholder="Название канала">
                 <label for="editChannelName">Название канала</label>
               </div>
             </div>
@@ -109,8 +190,7 @@ onBeforeMount(async ()  => {
                   class="form-control"
                   v-model="channelsToEdit.subscribers_count"
                   id="editSubscribersCount"
-                  placeholder="Количество подписчиков"
-                >
+                  placeholder="Количество подписчиков">
                 <label for="editSubscribersCount">Количество подписчиков</label>
               </div>
             </div>
@@ -122,17 +202,33 @@ onBeforeMount(async ()  => {
                   v-model="channelsToEdit.description"
                   id="editDescription"
                   placeholder="Описание канала"
-                  style="height: 120px"
-                ></textarea>
+                  style="height: 120px"></textarea>
                 <label for="editDescription">Описание канала</label>
               </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <input
+                class="form-control mb-3"
+                type="file"
+                ref="channelEditPictureRef"
+                @change="channelsEditPictureChange">
+            </div>
+
+            <div class="col-12 col-md-6" v-if="channelEditImageUrl">
+              <img
+                :src="channelEditImageUrl"
+                style="max-height: 60px; cursor: pointer;"
+                @click="openImage(channelEditImageUrl)">
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateChannel">Сохранить изменения</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="onUpdateChannel">
+            Сохранить изменения
+          </button>
         </div>
       </div>
     </div>
@@ -149,8 +245,7 @@ onBeforeMount(async ()  => {
               v-model="channelsToAdd.name"
               id="channelName"
               placeholder="Название канала"
-              required
-            >
+              required>
             <label for="channelName">Название канала</label>
           </div>
         </div>
@@ -181,8 +276,7 @@ onBeforeMount(async ()  => {
               v-model="channelsToAdd.subscribers_count"
               id="subscribersCount"
               placeholder="Количество подписчиков"
-              required
-            >
+              required>
             <label for="subscribersCount">Количество подписчиков</label>
           </div>
         </div>
@@ -195,10 +289,25 @@ onBeforeMount(async ()  => {
               id="channelDescription"
               placeholder="Описание канала"
               style="height: 120px"
-              required
-            ></textarea>
+              required>
+            </textarea>
             <label for="channelDescription">Описание канала</label>
           </div>
+        </div>
+
+        <div class="col-auto">
+          <input
+            class="form-control mb-3"
+            type="file"
+            ref="channelsPictureRef"
+            @change="channelsAddPictureChange">
+        </div>
+
+        <div class="col-auto" v-if="channelAddImageUrl">
+          <img
+            :src="channelAddImageUrl"
+            style="max-height: 60px; cursor: pointer;"
+            @click="openImage(channelAddImageUrl)">
         </div>
 
         <div class="col-12">
@@ -223,6 +332,14 @@ onBeforeMount(async ()  => {
         <span>{{ item.subscribers_count }}</span>
       </div>
 
+      <div v-show="item.picture">
+        <img
+          :src="item.picture"
+          style="max-height: 60px; cursor: pointer;"
+          @click="openImage(item.picture)"
+        >
+      </div>
+
       <button
         type="button"
         class="btn btn-success"
@@ -238,12 +355,16 @@ onBeforeMount(async ()  => {
       </button>
     </div>
   </div>
+
+  <div v-if="selectedImage" class="image-modal" @click="closeImage">
+    <img :src="selectedImage" class="image-modal-content">
+  </div>
 </template>
 
 <style lang="css" scoped>
 .channels-item {
   display: grid;
-  grid-template-columns: 2fr 1.5fr auto auto;
+  grid-template-columns: 2fr 1.5fr auto auto auto;
   align-items: center;
   gap: 16px;
   padding: 0.75rem;
@@ -261,5 +382,22 @@ onBeforeMount(async ()  => {
 .channel-meta {
   display: grid;
   gap: 4px;
+}
+
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-modal-content {
+  max-height: 90%;
+  max-width: 90%;
 }
 </style>

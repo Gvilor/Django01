@@ -23,6 +23,10 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+__pycache__
+*.sqlite3
+.conda
+media
 
 *.tsbuildinfo
 
