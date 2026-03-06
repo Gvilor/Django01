@@ -8,18 +8,18 @@ class ChannelViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.Re
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
 
-class GroupViewset(mixins.ListModelMixin, GenericViewSet):
+class GroupViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
 
-class ChannelTypeViewset(mixins.ListModelMixin, GenericViewSet):
+class ChannelTypeViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = ChannelType.objects.all()
     serializer_class = ChannelTypeSerializer
 
-class DescriptionViewset(mixins.ListModelMixin, GenericViewSet):
+class DescriptionViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Description.objects.all()
     serializer_class = DescriptionSerializer
 
-class SubscriberViewset(mixins.ListModelMixin, GenericViewSet):
+class SubscriberViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Subscriber.objects.all()
     serializer_class = SubscriberSerializer
