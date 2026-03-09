@@ -7,6 +7,10 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class ChannelSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        if "request" in self.context:
+            validated_data["user"] = self.context["request"].user
+        return super().create(validated_data)
     class Meta:
         model = Channel
         fields = "__all__"

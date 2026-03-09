@@ -9,6 +9,7 @@ const channelTypes = ref([])
 const channelsToAdd = ref({})
 const channelsToEdit = ref({})
 const loading = ref(false)
+const errorMessage = ref('')
 
 const channelsPictureRef = ref()
 const channelAddImageUrl = ref(null)
@@ -25,6 +26,15 @@ const groupsById = computed(() => {
 const channelTypesById = computed(() => {
   return _.keyBy(channelTypes.value, x => x.id)
 })
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop().split(';').shift()
+  }
+  return null
+}
 
 function openImage(url) {
   selectedImage.value = url
@@ -45,42 +55,65 @@ async function fetchChannelTypes() {
 }
 
 async function fetchChannels() {
-  const r = await axios.get('/api/channels/')
-  channels.value = r.data
+  try {
+    const r = await axios.get('/api/channels/', {
+      withCredentials: true
+    })
+    channels.value = r.data
+    errorMessage.value = ''
+  } catch (error) {
+    channels.value = []
+    errorMessage.value = 'Чтобы просматривать каналы, нужно войти в систему.'
+  }
 }
 
 async function onChannelsAdd() {
-  const formData = new FormData()
+  try {
+    const formData = new FormData()
 
-  if (channelsPictureRef.value?.files?.[0]) {
-    formData.append('picture', channelsPictureRef.value.files[0])
-  }
-
-  formData.set('name', channelsToAdd.value.name || '')
-  formData.set('description', channelsToAdd.value.description || '')
-  formData.set('group', channelsToAdd.value.group || '')
-  formData.set('channel_type', channelsToAdd.value.channel_type || '')
-  formData.set('subscribers_count', channelsToAdd.value.subscribers_count || 0)
-
-  await axios.post('/api/channels/', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
+    if (channelsPictureRef.value?.files?.[0]) {
+      formData.append('picture', channelsPictureRef.value.files[0])
     }
-  })
 
-  channelsToAdd.value = {}
-  channelAddImageUrl.value = null
+    formData.set('name', channelsToAdd.value.name || '')
+    formData.set('description', channelsToAdd.value.description || '')
+    formData.set('group', channelsToAdd.value.group || '')
+    formData.set('channel_type', channelsToAdd.value.channel_type || '')
+    formData.set('subscribers_count', channelsToAdd.value.subscribers_count || 0)
 
-  if (channelsPictureRef.value) {
-    channelsPictureRef.value.value = null
+    await axios.post('/api/channels/', formData, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+    })
+
+    channelsToAdd.value = {}
+    channelAddImageUrl.value = null
+
+    if (channelsPictureRef.value) {
+      channelsPictureRef.value.value = null
+    }
+
+    await fetchChannels()
+  } catch (error) {
+    errorMessage.value = 'Не удалось добавить канал.'
   }
-
-  await fetchChannels()
 }
 
 async function onRemoveClick(channel) {
-  await axios.delete(`/api/channels/${channel.id}/`)
-  await fetchChannels()
+  try {
+    await axios.delete(`/api/channels/${channel.id}/`, {
+      withCredentials: true,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      }
+})
+    await fetchChannels()
+  } catch (error) {
+    errorMessage.value = 'Не удалось удалить канал.'
+  }
 }
 
 async function onChannelEditClick(channel) {
@@ -93,32 +126,40 @@ async function onChannelEditClick(channel) {
 }
 
 async function onUpdateChannel() {
-  const formData = new FormData()
+  try {
+    const formData = new FormData()
 
-  if (channelEditPictureRef.value?.files?.[0]) {
-    formData.append('picture', channelEditPictureRef.value.files[0])
-  }
-
-  formData.set('name', channelsToEdit.value.name || '')
-  formData.set('description', channelsToEdit.value.description || '')
-  formData.set('group', channelsToEdit.value.group || '')
-  formData.set('channel_type', channelsToEdit.value.channel_type || '')
-  formData.set('subscribers_count', channelsToEdit.value.subscribers_count || 0)
-
-  await axios.put(`/api/channels/${channelsToEdit.value.id}/`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
+    if (channelEditPictureRef.value?.files?.[0]) {
+      formData.append('picture', channelEditPictureRef.value.files[0])
     }
-  })
 
-  channelsToEdit.value = {}
-  channelEditImageUrl.value = null
+    formData.set('name', channelsToEdit.value.name || '')
+    formData.set('description', channelsToEdit.value.description || '')
+    formData.set('group', channelsToEdit.value.group || '')
+    formData.set('channel_type', channelsToEdit.value.channel_type || '')
+    formData.set('subscribers_count', channelsToEdit.value.subscribers_count || 0)
 
-  if (channelEditPictureRef.value) {
-    channelEditPictureRef.value.value = null
-  }
+    await axios.patch(`/api/channels/${channelsToEdit.value.id}/`, formData, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+})
 
-  await fetchChannels()
+    channelsToEdit.value = {}
+    channelEditImageUrl.value = null
+
+    if (channelEditPictureRef.value) {
+      channelEditPictureRef.value.value = null
+    }
+
+    await fetchChannels()
+  } catch (error) {
+    console.log('Ошибка обновления:', error)
+    console.log('Ответ сервера:', error.response?.data)
+    errorMessage.value = JSON.stringify(error.response?.data || 'Не удалось обновить канал.')
+}
 }
 
 function channelsAddPictureChange() {
@@ -135,10 +176,15 @@ function channelsEditPictureChange() {
 
 onBeforeMount(async () => {
   loading.value = true
-  await fetchChannels()
-  await fetchGroups()
-  await fetchChannelTypes()
-  loading.value = false
+  errorMessage.value = ''
+
+  try {
+    await fetchGroups()
+    await fetchChannelTypes()
+    await fetchChannels()
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -318,6 +364,10 @@ onBeforeMount(async () => {
 
     <div v-if="loading">
       Грузится...
+    </div>
+
+    <div v-if="errorMessage" class="alert alert-warning">
+      {{ errorMessage }}
     </div>
 
     <div v-for="item in channels" :key="item.id" class="channels-item">

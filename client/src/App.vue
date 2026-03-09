@@ -1,4 +1,47 @@
 <script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const currentUser = ref(null);
+
+async function loadCurrentUser() {
+  try {
+    const response = await axios.get('/api/current-user/', {
+      withCredentials: true,
+    })
+    currentUser.value = response.data
+  } catch (error) {
+    window.location.href = '/accounts/login/'
+  }
+}
+
+onMounted(() => {
+  loadCurrentUser();
+});
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop().split(';').shift()
+  }
+  return null
+}
+
+async function onLogout() {
+  try {
+    await axios.post('/api/logout/', {}, {
+      withCredentials: true,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      }
+    })
+
+    window.location.href = '/accounts/login/'
+  } catch (error) {
+    console.log(error)
+  }
+}
 </script>
 
 <template>
@@ -6,6 +49,7 @@
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
       <div class="container-fluid">
         <router-link class="navbar-brand" to="/">TelegaChannels</router-link>
+
         <button
           class="navbar-toggler"
           type="button"
@@ -19,7 +63,7 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
+          <ul class="navbar-nav me-auto">
             <li class="nav-item">
               <router-link class="nav-link" to="/">Каналы</router-link>
             </li>
@@ -36,18 +80,44 @@
               <router-link class="nav-link" to="/subscribers">Подписчики</router-link>
             </li>
           </ul>
-        </div>
 
-        <ul class="navbar-nav">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Пользователь
-            </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="/admin">Админка</a></li>
-            </ul>
-          </li>
-        </ul>
+          <ul class="navbar-nav" v-if="currentUser">
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle d-flex align-items-center gap-2"
+                href="#"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <span>{{ currentUser.username }}</span>
+                <span class="badge text-bg-secondary">
+                  {{ currentUser.is_superuser ? "admin" : "user" }}
+                </span>
+              </a>
+
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <span class="dropdown-item-text">
+                    {{ currentUser.is_superuser ? "Суперпользователь" : "Обычный пользователь" }}
+                  </span>
+                </li>
+
+                <li v-if="currentUser.is_superuser">
+                  <a class="dropdown-item" href="/admin/">
+                    Админка
+                  </a>
+                </li>
+
+                <li>
+                  <button class="dropdown-item" type="button" @click="onLogout">
+                    Выйти
+                  </button>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
       </div>
     </nav>
   </div>

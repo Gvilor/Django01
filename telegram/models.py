@@ -38,27 +38,11 @@ class ChannelType(models.Model):
 class Channel(models.Model):
     name = models.TextField("Название")
     description = models.TextField("Описание")
-    group = models.ForeignKey(
-        Group,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        verbose_name="Группа"
-    )
-    channel_type = models.ForeignKey(
-        ChannelType,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        verbose_name="Тип канала"
-    )
+    group = models.ForeignKey(Group,on_delete=models.CASCADE,null=True,blank=True,verbose_name="Группа")
+    channel_type = models.ForeignKey(ChannelType,on_delete=models.CASCADE,null=True,blank=True,verbose_name="Тип канала")
     subscribers_count = models.PositiveIntegerField("Количество подписчиков", default=0)
-    picture = models.ImageField(
-        "Картинка",
-        upload_to="channels/",
-        null=True,
-        blank=True
-    )
+    picture = models.ImageField("Картинка",upload_to="channels/",null=True,blank=True)
+    user = models.ForeignKey("auth.User",verbose_name="Пользователь",on_delete=models.CASCADE,null=True,blank=True)
 
     class Meta:
         verbose_name = "Канал"
