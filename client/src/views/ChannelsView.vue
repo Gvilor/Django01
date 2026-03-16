@@ -10,6 +10,7 @@ const channelsToAdd = ref({})
 const channelsToEdit = ref({})
 const loading = ref(false)
 const errorMessage = ref('')
+const stats = ref(null)
 
 const channelsPictureRef = ref()
 const channelAddImageUrl = ref(null)
@@ -67,6 +68,17 @@ async function fetchChannels() {
   }
 }
 
+async function fetchStats() {
+  try {
+    const r = await axios.get('/api/channels/stats/', {
+      withCredentials: true
+    })
+    stats.value = r.data
+  } catch (error) {
+    stats.value = null
+  }
+}
+
 async function onChannelsAdd() {
   try {
     const formData = new FormData()
@@ -97,6 +109,7 @@ async function onChannelsAdd() {
     }
 
     await fetchChannels()
+    await fetchStats()
   } catch (error) {
     errorMessage.value = 'Не удалось добавить канал.'
   }
@@ -111,6 +124,7 @@ async function onRemoveClick(channel) {
       }
 })
     await fetchChannels()
+    await fetchStats()
   } catch (error) {
     errorMessage.value = 'Не удалось удалить канал.'
   }
@@ -155,6 +169,7 @@ async function onUpdateChannel() {
     }
 
     await fetchChannels()
+    await fetchStats()
   } catch (error) {
     console.log('Ошибка обновления:', error)
     console.log('Ответ сервера:', error.response?.data)
@@ -182,6 +197,7 @@ onBeforeMount(async () => {
     await fetchGroups()
     await fetchChannelTypes()
     await fetchChannels()
+    await fetchStats()
   } finally {
     loading.value = false
   }
@@ -356,7 +372,7 @@ onBeforeMount(async () => {
             @click="openImage(channelAddImageUrl)">
         </div>
 
-        <div class="col-12">
+        <div class="col-12 mb-3">
           <button type="submit" class="btn btn-primary">Добавить</button>
         </div>
       </div>
@@ -368,6 +384,14 @@ onBeforeMount(async () => {
 
     <div v-if="errorMessage" class="alert alert-warning">
       {{ errorMessage }}
+    </div>
+
+    <div v-if="stats" class="alert alert-info">
+      <div><b>Статистика по каналам</b></div>
+      <div>Количество каналов: {{ stats.count }}</div>
+      <div>Среднее число подписчиков: {{ stats.avg ? Number(stats.avg).toFixed(2) : '—' }}</div>
+      <div>Максимум подписчиков: {{ stats.max ?? '—' }}</div>
+      <div>Минимум подписчиков: {{ stats.min ?? '—' }}</div>
     </div>
 
     <div v-for="item in channels" :key="item.id" class="channels-item">
