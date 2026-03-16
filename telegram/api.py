@@ -8,6 +8,9 @@ from rest_framework.views import APIView
 from django.db.models import Avg, Count, Max, Min
 from rest_framework.decorators import action
 from rest_framework import serializers
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
 
 from telegram.models import Channel, Group, Description, ChannelType, Subscriber
@@ -48,6 +51,53 @@ class ChannelViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.Re
 
         serializer = self.StatsSerializer(instance=stats)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=["GET"], url_path="export-excel")
+    def export_excel(self, request):
+        queryset = self.get_queryset()
+
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Channels"
+
+        headers = [
+            "ID",
+            "Название",
+            "Описание",
+            "Группа",
+            "Тип канала",
+            "Количество подписчиков",
+        ]
+
+        worksheet.append(headers)
+
+        for cell in worksheet[1]:
+            cell.font = Font(bold=True)
+
+        for channel in queryset:
+            worksheet.append([
+                channel.id,
+                channel.name,
+                channel.description,
+                channel.group.name if channel.group else "",
+                channel.channel_type.name if channel.channel_type else "",
+                channel.subscribers_count,
+            ])
+
+        worksheet.column_dimensions["A"].width = 10
+        worksheet.column_dimensions["B"].width = 30
+        worksheet.column_dimensions["C"].width = 50
+        worksheet.column_dimensions["D"].width = 25
+        worksheet.column_dimensions["E"].width = 20
+        worksheet.column_dimensions["F"].width = 25
+
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = 'attachment; filename="channels.xlsx"'
+
+        workbook.save(response)
+        return response
 
 class GroupViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Group.objects.all()

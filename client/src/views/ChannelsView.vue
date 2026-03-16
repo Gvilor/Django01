@@ -189,6 +189,31 @@ function channelsEditPictureChange() {
   }
 }
 
+async function exportChannelsToExcel() {
+  try {
+    const response = await axios.get('/api/channels/export-excel/', {
+      withCredentials: true,
+      responseType: 'blob'
+    })
+
+    const blob = new Blob(
+      [response.data],
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    )
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'channels.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    errorMessage.value = 'Не удалось скачать Excel-файл.'
+  }
+}
+
 onBeforeMount(async () => {
   loading.value = true
   errorMessage.value = ''
@@ -374,6 +399,9 @@ onBeforeMount(async () => {
 
         <div class="col-12 mb-3">
           <button type="submit" class="btn btn-primary">Добавить</button>
+          <button type="button" class="btn btn-success m-3" @click="exportChannelsToExcel">
+            Скачать Excel
+          </button>
         </div>
       </div>
     </form>
