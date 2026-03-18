@@ -37,8 +37,7 @@ async function onLogout() {
           data-bs-target="#navbarNav"
           aria-controls="navbarNav"
           aria-expanded="false"
-          aria-label="Переключатель навигации"
-        >
+          aria-label="Переключатель навигации">
           <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -68,8 +67,7 @@ async function onLogout() {
                 href="#"
                 role="button"
                 data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
+                aria-expanded="false">
                 <span>{{ currentUser.username }}</span>
                 <span class="badge text-bg-secondary">
                   {{ currentUser.is_superuser ? "admin" : "user" }}
