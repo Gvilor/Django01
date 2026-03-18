@@ -11,10 +11,8 @@ from telegram.api import (
     ChannelTypeViewset,
     DescriptionViewset,
     SubscriberViewset,
-    CurrentUserView,
-    LogoutView
+    AuthViewSet,
 )
-
 
 router = DefaultRouter()
 router.register("channels", ChannelViewset, basename="channel")
@@ -22,12 +20,10 @@ router.register("groups", GroupViewset, basename="group")
 router.register("channel-types", ChannelTypeViewset, basename="channeltype")
 router.register("descriptions", DescriptionViewset, basename="description")
 router.register("subscribers", SubscriberViewset, basename="subscriber")
+router.register("auth", AuthViewSet, basename="auth")
 
 urlpatterns = [
     path('', views.ShowTelegramView.as_view()),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
-    path('api/current-user/', CurrentUserView.as_view()),
-    path('api/logout/', LogoutView.as_view()),
-    path('accounts/', include('django.contrib.auth.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

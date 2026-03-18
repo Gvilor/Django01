@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onBeforeMount } from 'vue'
-import axios from 'axios'
+import axios from '@/api/axios'
 import _ from 'lodash'
 
 const channels = ref([])
@@ -28,15 +28,6 @@ const channelTypesById = computed(() => {
   return _.keyBy(channelTypes.value, x => x.id)
 })
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`
-  const parts = value.split(`; ${name}=`)
-  if (parts.length === 2) {
-    return parts.pop().split(';').shift()
-  }
-  return null
-}
-
 function openImage(url) {
   selectedImage.value = url
 }
@@ -57,9 +48,7 @@ async function fetchChannelTypes() {
 
 async function fetchChannels() {
   try {
-    const r = await axios.get('/api/channels/', {
-      withCredentials: true
-    })
+    const r = await axios.get('/api/channels/')
     channels.value = r.data
     errorMessage.value = ''
   } catch (error) {
@@ -70,9 +59,7 @@ async function fetchChannels() {
 
 async function fetchStats() {
   try {
-    const r = await axios.get('/api/channels/stats/', {
-      withCredentials: true
-    })
+    const r = await axios.get('/api/channels/stats/')
     stats.value = r.data
   } catch (error) {
     stats.value = null
@@ -94,12 +81,10 @@ async function onChannelsAdd() {
     formData.set('subscribers_count', channelsToAdd.value.subscribers_count || 0)
 
     await axios.post('/api/channels/', formData, {
-      withCredentials: true,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'X-CSRFToken': getCookie('csrftoken'),
-      }
-    })
+  headers: {
+    'Content-Type': 'multipart/form-data',
+    }
+  })
 
     channelsToAdd.value = {}
     channelAddImageUrl.value = null
@@ -117,12 +102,7 @@ async function onChannelsAdd() {
 
 async function onRemoveClick(channel) {
   try {
-    await axios.delete(`/api/channels/${channel.id}/`, {
-      withCredentials: true,
-      headers: {
-        'X-CSRFToken': getCookie('csrftoken')
-      }
-})
+    await axios.delete(`/api/channels/${channel.id}/`)
     await fetchChannels()
     await fetchStats()
   } catch (error) {
@@ -154,12 +134,10 @@ async function onUpdateChannel() {
     formData.set('subscribers_count', channelsToEdit.value.subscribers_count || 0)
 
     await axios.patch(`/api/channels/${channelsToEdit.value.id}/`, formData, {
-      withCredentials: true,
       headers: {
         'Content-Type': 'multipart/form-data',
-        'X-CSRFToken': getCookie('csrftoken'),
       }
-})
+    })
 
     channelsToEdit.value = {}
     channelEditImageUrl.value = null
@@ -170,11 +148,14 @@ async function onUpdateChannel() {
 
     await fetchChannels()
     await fetchStats()
+
   } catch (error) {
     console.log('Ошибка обновления:', error)
     console.log('Ответ сервера:', error.response?.data)
-    errorMessage.value = JSON.stringify(error.response?.data || 'Не удалось обновить канал.')
-}
+    errorMessage.value = JSON.stringify(
+      error.response?.data || 'Не удалось обновить канал.'
+    )
+  }
 }
 
 function channelsAddPictureChange() {
@@ -192,8 +173,7 @@ function channelsEditPictureChange() {
 async function exportChannelsToExcel() {
   try {
     const response = await axios.get('/api/channels/export-excel/', {
-      withCredentials: true,
-      responseType: 'blob'
+    responseType: 'blob'
     })
 
     const blob = new Blob(
@@ -403,6 +383,7 @@ onBeforeMount(async () => {
             Скачать Excel
           </button>
         </div>
+
       </div>
     </form>
 

@@ -1,21 +1,26 @@
-from rest_framework.viewsets import GenericViewSet
-from rest_framework import mixins, viewsets
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.contrib.auth import authenticate, login, logout
 from django.db.models import Avg, Count, Max, Min
-from rest_framework.decorators import action
-from rest_framework import serializers
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
+from rest_framework import mixins, serializers, status, permissions, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from telegram.models import Channel, Group, Description, ChannelType, Subscriber
-from telegram.serializers import ChannelSerializer, GroupSerializer, DescriptionSerializer, ChannelTypeSerializer, SubscriberSerializer
-
+from telegram.serializers import (
+    ChannelSerializer,
+    GroupSerializer,
+    DescriptionSerializer,
+    ChannelTypeSerializer,
+    SubscriberSerializer,
+)
 class ChannelViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
@@ -184,19 +189,44 @@ class SubscriberViewset(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins
         serializer = self.StatsSerializer(instance=stats)
         return Response(serializer.data)
 
-class CurrentUserView(APIView):
-    permission_classes = [IsAuthenticated]
+class AuthViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
+    @action(detail=False, methods=["post"])
+    def login(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return Response(
+                {"detail": "Неверный логин или пароль"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        login(request, user)
+
         return Response({
-            "id": request.user.id,
-            "username": request.user.username,
-            "is_superuser": request.user.is_superuser,
+            "id": user.id,
+            "username": user.username,
+            "is_superuser": user.is_superuser,
         })
-    
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def logout(self, request):
         logout(request)
-        return Response({"detail": "ok"})
+        return Response({"detail": "Вы вышли"})
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        user = request.user
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "is_superuser": user.is_superuser,
+        })
+
+    @method_decorator(ensure_csrf_cookie)
+    @action(detail=False, methods=["get"])
+    def csrf(self, request):
+        return Response({"detail": "CSRF cookie set"})

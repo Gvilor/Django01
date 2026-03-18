@@ -1,43 +1,23 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import axios from "axios";
+import { computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import { useUserStore } from "@/stores/user"
 
-const currentUser = ref(null);
+const router = useRouter()
+const userStore = useUserStore()
 
-async function loadCurrentUser() {
-  try {
-    const response = await axios.get('/api/current-user/', {
-      withCredentials: true,
-    })
-    currentUser.value = response.data
-  } catch (error) {
-    window.location.href = '/accounts/login/'
+const currentUser = computed(() => userStore.user)
+
+onMounted(async () => {
+  if (!userStore.isAuthChecked) {
+    await userStore.fetchMe()
   }
-}
-
-onMounted(() => {
-  loadCurrentUser();
-});
-
-function getCookie(name) {
-  const value = `; ${document.cookie}`
-  const parts = value.split(`; ${name}=`)
-  if (parts.length === 2) {
-    return parts.pop().split(';').shift()
-  }
-  return null
-}
+})
 
 async function onLogout() {
   try {
-    await axios.post('/api/logout/', {}, {
-      withCredentials: true,
-      headers: {
-        'X-CSRFToken': getCookie('csrftoken')
-      }
-    })
-
-    window.location.href = '/accounts/login/'
+    await userStore.logout()
+    router.push("/login")
   } catch (error) {
     console.log(error)
   }
@@ -63,7 +43,7 @@ async function onLogout() {
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
+          <ul class="navbar-nav me-auto" v-if="currentUser">
             <li class="nav-item">
               <router-link class="nav-link" to="/">Каналы</router-link>
             </li>
@@ -81,7 +61,7 @@ async function onLogout() {
             </li>
           </ul>
 
-          <ul class="navbar-nav" v-if="currentUser">
+          <ul class="navbar-nav ms-auto" v-if="currentUser">
             <li class="nav-item dropdown">
               <a
                 class="nav-link dropdown-toggle d-flex align-items-center gap-2"
